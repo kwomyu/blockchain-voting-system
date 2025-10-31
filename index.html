@@ -1,0 +1,1511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blockchain Voting System</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class', // This app is dark mode by default
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                },
+            },
+        }
+    </script>
+    <!-- Use Inter font -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for blockchain view */
+        .blockchain-viewer::-webkit-scrollbar {
+            width: 8px;
+        }
+        .blockchain-viewer::-webkit-scrollbar-track {
+            background: #1f2937; /* gray-800 */
+        }
+        .blockchain-viewer::-webkit-scrollbar-thumb {
+            background: #4b5563; /* gray-600 */
+            border-radius: 4px;
+        }
+        .blockchain-viewer::-webkit-scrollbar-thumb:hover {
+            background: #6b7280; /* gray-500 */
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 antialiased min-h-screen">
+
+    <!-- Main Container -->
+    <div class="container mx-auto max-w-5xl p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-white">Blockchain Voting System</h1>
+            <p class="text-lg text-gray-400 mt-2">A secure, decentralized voting application.</p>
+        </header>
+
+        <!-- Global Status Bar (Timer) -->
+        <div class="bg-gray-800 rounded-lg shadow-xl p-4 mb-6 flex items-center justify-center text-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-400 mr-3 hidden md:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span class="text-lg font-medium text-white" id="global-timer">Initializing...</span>
+        </div>
+
+        <!-- View: Initial Login Selection -->
+        <div id="view-login-select" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Admin Login Card -->
+            <div class="bg-gray-800 rounded-lg shadow-xl p-6 flex flex-col items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-blue-400 mb-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                </svg>
+                <h2 class="text-2xl font-semibold mb-4">Admin Portal</h2>
+                <p class="text-gray-400 mb-6 text-center">Manage elections, register voters, and compile results.</p>
+                <button id="btn-show-admin-login" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                    Login as Admin
+                </button>
+            </div>
+            <!-- Voter Login Card -->
+            <div class="bg-gray-800 rounded-lg shadow-xl p-6 flex flex-col items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-green-400 mb-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM5 11a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" />
+                </svg>
+                <h2 class="text-2xl font-semibold mb-4">Voter Portal</h2>
+                <p class="text-gray-400 mb-6 text-center">Authenticate and securely cast your vote on the blockchain.</p>
+                <button id="btn-show-voter-login" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                    Login as Voter
+                </button>
+            </div>
+        </div>
+
+        <!-- View: Admin Dashboard -->
+        <div id="view-admin-dashboard" class="hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-3xl font-semibold">Admin Dashboard</h2>
+                <button id="btn-admin-logout" class="text-sm text-blue-400 hover:text-blue-300">Logout</button>
+            </div>
+
+            <!-- Admin Tabs -->
+            <div class="mb-4 border-b border-gray-700">
+                <nav class="flex -mb-px" aria-label="Tabs">
+                    <button class="admin-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-blue-500 text-blue-400" data-tab="tab-setup">Setup Election</button>
+                    <button class="admin-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-500" data-tab="tab-manage">Manage Election</button>
+                    <button class="admin-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-500" data-tab="tab-results">Results</button>
+                    <button class="admin-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-500" data-tab="tab-blockchain">Blockchain</button>
+                </nav>
+            </div>
+
+            <!-- Tab Content: Setup -->
+            <div id="tab-setup" class="admin-tab-content">
+                <div class="bg-gray-800 rounded-lg shadow-xl p-6">
+                    <h3 class="text-2xl font-semibold mb-4">Create New Election</h3>
+                    <form id="form-setup-election">
+                        <div class="mb-4">
+                            <label for="setup-candidates" class="block text-sm font-medium text-gray-300 mb-2">Candidates (one per line)</label>
+                            <textarea id="setup-candidates" rows="4" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Alice Johnson&#10;Bob Smith&#10;Carol Davis"></textarea>
+                        </div>
+                        <div class="mb-4">
+                            <label for="setup-voters" class="block text-sm font-medium text-gray-300 mb-2">Voters (CSV format: id,name,password)</label>
+                            <textarea id="setup-voters" rows="6" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="voter001,John Doe,vote123&#10;voter002,Jane Smith,secure456"></textarea>
+                        </div>
+                        <div class="mb-4">
+                            <label for="setup-duration" class="block text-sm font-medium text-gray-300 mb-2">Voting Duration (minutes)</label>
+                            <input type="number" id="setup-duration" value="5" min="1" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <button type="submit" id="btn-setup-election" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                            Setup Election
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Tab Content: Manage -->
+            <div id="tab-manage" class="admin-tab-content hidden">
+                <div class="bg-gray-800 rounded-lg shadow-xl p-6">
+                    <h3 class="text-2xl font-semibold mb-4">Manage Election</h3>
+                    <div class="space-y-4">
+                        <button id="btn-start-election" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed">
+                            Start Election
+                        </button>
+                        <button id="btn-stop-election" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed">
+                            Stop Election
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Results -->
+            <div id="tab-results" class="admin-tab-content hidden">
+                <div class="bg-gray-800 rounded-lg shadow-xl p-6">
+                    <h3 class="text-2xl font-semibold mb-4">Election Results</h3>
+                    <button id="btn-compile-results" class="w-full mb-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed">
+                        Compile & Show Results
+                    </button>
+                    <div id="results-display" class="space-y-4">
+                        <!-- Results will be injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Blockchain -->
+            <div id="tab-blockchain" class="admin-tab-content hidden">
+                <div class="bg-gray-800 rounded-lg shadow-xl p-6">
+                    <h3 class="text-2xl font-semibold mb-4">Blockchain Explorer</h3>
+                    <div class="flex space-x-4 mb-4">
+                        <button id="btn-verify-chain" class="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Verify Integrity</button>
+                        <button id="btn-save-chain" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Save to LocalStorage</button>
+                        <button id="btn-load-chain" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Load from LocalStorage</button>
+                    </div>
+                    <div id="blockchain-viewer" class="blockchain-viewer bg-gray-900 rounded-lg p-4 h-96 overflow-y-auto space-y-4">
+                        <!-- Blocks will be injected here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- View: Voter Dashboard -->
+        <div id="view-voter-dashboard" class="hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h2 id="voter-welcome" class="text-3xl font-semibold">Welcome, Voter!</h2>
+                <button id="btn-voter-logout" class="text-sm text-blue-400 hover:text-blue-300">Logout</button>
+            </div>
+
+            <div class="bg-gray-800 rounded-lg shadow-xl p-6">
+                <!-- Status: Already Voted -->
+                <div id="voter-status-voted" class="hidden text-center p-6 bg-gray-700 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-green-400 mx-auto mb-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    </svg>
+                    <h3 class="text-2xl font-semibold mb-2">Your vote has been cast!</h3>
+                    <p id="voter-voted-timestamp" class="text-gray-400">Thank you for participating.</p>
+                </div>
+
+                <!-- Status: Voting Not Open -->
+                <div id="voter-status-closed" class="hidden text-center p-6 bg-gray-700 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-yellow-400 mx-auto mb-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9 4a1 1 0 012 0v6h-2V4zm0 8a1 1 0 012 0v2h-2v-2z" clip-rule="evenodd" />
+                    </svg>
+                    <h3 class="text-2xl font-semibold mb-2">Voting is not currently open.</h3>
+                    <p class="text-gray-400">Please check the election timer for details.</p>
+                </div>
+
+                <!-- Form: Cast Vote -->
+                <form id="form-cast-vote" class="hidden">
+                    <h3 class="text-2xl font-semibold mb-4">Cast Your Vote</h3>
+                    <p class="text-gray-400 mb-6">Select your preferred candidate and submit. This action is final.</p>
+                    <div id="candidate-list" class="space-y-3 mb-8">
+                        <!-- Candidates will be injected here -->
+                    </div>
+                    <button type="submit" id="btn-cast-vote" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-colors">
+                        Submit Vote
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Admin Login -->
+    <div id="modal-admin-login" class="hidden fixed inset-0 bg-black bg-opacity-75 z-40 flex items-center justify-center p-4">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-8 w-full max-w-md">
+            <h2 class="text-2xl font-semibold mb-6 text-center">Admin Login</h2>
+            <form id="form-admin-login">
+                <div class="mb-4">
+                    <label for="admin-username" class="block text-sm font-medium text-gray-300 mb-2">Username</label>
+                    <input type="text" id="admin-username" value="election_admin" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
+                </div>
+                <div class="mb-6">
+                    <label for="admin-password" class="block text-sm font-medium text-gray-300 mb-2">Password</label>
+                    <input type="password" id="admin-password" value="secure_password_123" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
+                </div>
+                <div class="flex gap-4">
+                    <button type="button" id="btn-cancel-admin-login" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Cancel</button>
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Login</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Voter Login -->
+    <div id="modal-voter-login" class="hidden fixed inset-0 bg-black bg-opacity-75 z-40 flex items-center justify-center p-4">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-8 w-full max-w-md">
+            <h2 class="text-2xl font-semibold mb-6 text-center">Voter Login</h2>
+            <form id="form-voter-login">
+                <div class="mb-4">
+                    <label for="voter-id" class="block text-sm font-medium text-gray-300 mb-2">Voter ID</label>
+                    <input type="text" id="voter-id" placeholder="e.g., voter001" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
+                </div>
+                <div class="mb-6">
+                    <label for="voter-password" class="block text-sm font-medium text-gray-300 mb-2">Password</label>
+                    <input type="password" id="voter-password" placeholder="Your password" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
+                </div>
+                <div class="flex gap-4">
+                    <button type="button" id="btn-cancel-voter-login" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Cancel</button>
+                    <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Login</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Global Loading Spinner -->
+    <div id="loading-overlay" class="hidden fixed inset-0 bg-black bg-opacity-75 z-50 flex flex-col items-center justify-center">
+        <svg class="animate-spin h-10 w-10 text-white mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span id="loading-text" class="text-lg font-medium text-white">Loading...</span>
+    </div>
+
+    <!-- Global Toast Notification -->
+    <div id="toast" class="hidden fixed top-5 right-5 p-4 rounded-lg shadow-xl text-white z-50 transition-all">
+        <span id="toast-text">Notification</span>
+    </div>
+
+    <!-- JavaScript Application -->
+    <script type="module">
+        // --- Crypto Helper Functions ---
+        // (Web Crypto API replacement for hashlib and pycryptodome)
+
+        /**
+         * Calculates SHA-256 hash of a string.
+         * @param {string} message - The string to hash.
+         * @returns {Promise<string>} - The hex-encoded hash.
+         */
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        /**
+         * Converts ArrayBuffer to Base64 string.
+         * @param {ArrayBuffer} buffer - The buffer to convert.
+         * @returns {string} - The Base64 string.
+         */
+        function arrayBufferToBase64(buffer) {
+            let binary = '';
+            const bytes = new Uint8Array(buffer);
+            const len = bytes.byteLength;
+            for (let i = 0; i < len; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return window.btoa(binary);
+        }
+
+        /**
+         * Converts Base64 string to ArrayBuffer.
+         * @param {string} base64 - The Base64 string.
+         * @returns {ArrayBuffer} - The buffer.
+         */
+        function base64ToArrayBuffer(base64) {
+            const binary_string = window.atob(base64);
+            const len = binary_string.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binary_string.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+
+        // --- Python Class Translations ---
+
+        /**
+         * Block Class (JS)
+         * Represents a single block in the blockchain.
+         */
+        class Block {
+            constructor(index, timestamp, data, previousHash) {
+                this.index = index;
+                this.timestamp = timestamp;
+                this.data = data; // Encrypted vote data
+                this.previous_hash = previousHash;
+                this.nonce = 0;
+                this.hash = null; // Will be set after calculation
+            }
+
+            /**
+             * Calculates SHA-256 hash of block contents (async).
+             */
+            async calculate_hash() {
+                const blockString = `${this.index}${this.timestamp}${this.data}${this.previous_hash}${this.nonce}`;
+                return await sha256(blockString);
+            }
+
+            /**
+             * Simple proof-of-work mining (async).
+             */
+            async mine_block(difficulty = 2) {
+                const target = "0".repeat(difficulty);
+                this.hash = await this.calculate_hash();
+                while (this.hash.substring(0, difficulty) !== target) {
+                    this.nonce++;
+                    this.hash = await this.calculate_hash();
+                }
+            }
+
+            to_dict() {
+                return {
+                    'index': this.index,
+                    'timestamp': this.timestamp,
+                    'data': this.data,
+                    'previous_hash': this.previous_hash,
+                    'nonce': this.nonce,
+                    'hash': this.hash
+                };
+            }
+
+            static from_dict(blockDict) {
+                const block = new Block(
+                    blockDict['index'],
+                    blockDict['timestamp'],
+                    blockDict['data'],
+                    blockDict['previous_hash']
+                );
+                block.nonce = blockDict['nonce'];
+                block.hash = blockDict['hash'];
+                return block;
+            }
+        }
+
+        /**
+         * VotingBlockchain Class (JS)
+         * Manages the blockchain.
+         */
+        class VotingBlockchain {
+            constructor() {
+                this.difficulty = 2;
+                this.chain = []; // Will be initialized async
+            }
+
+            /**
+             * Creates the first block in the blockchain (async).
+             */
+            async create_genesis_block() {
+                const genesisBlock = new Block(0, Date.now() / 1000, "Genesis Block - Voting System Initialized", "0");
+                await genesisBlock.mine_block(this.difficulty);
+                return genesisBlock;
+            }
+
+            /**
+             * Initializes the chain (must be called after constructor).
+             */
+            async initialize() {
+                if (this.chain.length === 0) {
+                    this.chain = [await this.create_genesis_block()];
+                }
+            }
+
+            get_latest_block() {
+                return this.chain[this.chain.length - 1];
+            }
+
+            /**
+             * Adds a new vote block to the blockchain (async).
+             */
+            async add_block(encryptedVoteData) {
+                try {
+                    const newBlock = new Block(
+                        this.chain.length,
+                        Date.now() / 1000,
+                        encryptedVoteData,
+                        this.get_latest_block().hash
+                    );
+                    
+                    showLoading(`Mining block #${newBlock.index}... (this may take a moment)`);
+                    await newBlock.mine_block(this.difficulty);
+                    
+                    this.chain.push(newBlock);
+                    return true;
+                } catch (e) {
+                    console.error("Error adding block:", e);
+                    return false;
+                }
+            }
+
+            /**
+             * Validates the entire blockchain integrity (async).
+             */
+            async is_chain_valid() {
+                for (let i = 1; i < this.chain.length; i++) {
+                    const currentBlock = this.chain[i];
+                    const previousBlock = this.chain[i - 1];
+
+                    const calculatedHash = await currentBlock.calculate_hash();
+                    if (currentBlock.hash !== calculatedHash) {
+                        console.error(`Invalid hash at block ${i}`);
+                        return false;
+                    }
+
+                    if (currentBlock.previous_hash !== previousBlock.hash) {
+                        console.error(`Invalid previous hash at block ${i}`);
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            /**
+             * Save blockchain to localStorage.
+             */
+            save_to_file(filename = "voting_blockchain") {
+                try {
+                    const blockchainData = {
+                        'chain': this.chain.map(block => block.to_dict()),
+                        'difficulty': this.difficulty
+                    };
+                    localStorage.setItem(filename, JSON.stringify(blockchainData, null, 2));
+                    return true;
+                } catch (e) {
+                    console.error("Error saving blockchain:", e);
+                    return false;
+                }
+            }
+
+            /**
+             * Load blockchain from localStorage.
+             */
+            load_from_file(filename = "voting_blockchain") {
+                try {
+                    const blockchainDataStr = localStorage.getItem(filename);
+                    if (!blockchainDataStr) {
+                        return false;
+                    }
+                    
+                    const blockchainData = JSON.parse(blockchainDataStr);
+                    this.chain = blockchainData['chain'].map(blockDict => Block.from_dict(blockDict));
+                    this.difficulty = blockchainData.get ? blockchainData.get('difficulty', 2) : (blockchainData['difficulty'] || 2);
+                    
+                    // Note: is_chain_valid is async, so we can't call it synchronously here.
+                    // We'll call it after loading in the main app logic.
+                    return true;
+                } catch (e) {
+                    console.error("Error loading blockchain:", e);
+                    return false;
+                }
+            }
+        }
+
+        /**
+         * VoteEncryption Class (JS)
+         * Handles AES encryption/decryption.
+         */
+        class VoteEncryption {
+            constructor() {
+                // Get encryption key.
+                // WARNING: Hardcoding keys in client-side JS is insecure.
+                // This is for demo purposes ONLY, mirroring the Python script's fallback.
+                const key = "a_32_byte_secret_key_for_aes_!@#"; // FIX: This is NOW 32 bytes.
+                this.keyPromise = this.importKey(key);
+                
+                showToast(
+                    "WARNING: Using demo encryption key. Do not use in production.", 
+                    "warn", 
+                    10000
+                );
+            }
+
+            async importKey(keyString) {
+                const keyBuffer = new TextEncoder().encode(keyString);
+                return await crypto.subtle.importKey(
+                    "raw",
+                    keyBuffer,
+                    { name: "AES-CBC" },
+                    false,
+                    ["encrypt", "decrypt"]
+                );
+            }
+
+            /**
+             * Encrypt vote data using AES-CBC (async).
+             */
+            async encrypt_vote(voteData) {
+                try {
+                    const key = await this.keyPromise;
+                    const iv = crypto.getRandomValues(new Uint8Array(16)); // AES block size is 16 bytes
+                    const encodedData = new TextEncoder().encode(voteData);
+
+                    // --- START FIX: Apply PKCS#7 padding ---
+                    const blockSize = 16;
+                    const padding = blockSize - (encodedData.length % blockSize);
+                    const paddedData = new Uint8Array(encodedData.length + padding);
+                    paddedData.set(encodedData);
+                    for (let i = encodedData.length; i < paddedData.length; i++) {
+                        paddedData[i] = padding;
+                    }
+                    // --- END FIX ---
+
+                    const encryptedBuffer = await crypto.subtle.encrypt(
+                        { name: "AES-CBC", iv: iv },
+                        key,
+                        paddedData // Use padded data
+                    );
+
+                    // Combine IV and encrypted data
+                    const combined = new Uint8Array(iv.length + encryptedBuffer.byteLength);
+                    combined.set(iv, 0);
+                    combined.set(new Uint8Array(encryptedBuffer), iv.length);
+                    
+                    return arrayBufferToBase64(combined.buffer);
+                } catch (e) {
+                    console.error("Encryption error:", e);
+                    return { error: e.message }; // <-- FIX: Return error object instead of ""
+                }
+            }
+
+            /**
+             * Decrypt vote data using AES-CBC (async).
+             */
+            async decrypt_vote(encryptedBase64) {
+                try {
+                    const key = await this.keyPromise;
+                    const combined = base64ToArrayBuffer(encryptedBase64);
+                    
+                    const iv = combined.slice(0, 16);
+                    const encryptedData = combined.slice(16);
+
+                    const decryptedBuffer = await crypto.subtle.decrypt(
+                        { name: "AES-CBC", iv: iv },
+                        key,
+                        encryptedData
+                    );
+
+                    // --- START FIX: Remove PKCS#7 padding ---
+                    const blockSize = 16; // <-- FIX: Define blockSize
+                    const decryptedBytes = new Uint8Array(decryptedBuffer);
+                    const padding = decryptedBytes[decryptedBytes.length - 1];
+                    // Basic validation for padding
+                    if (padding > blockSize || padding === 0) {
+                         console.error("Invalid padding detected.");
+                         // Fallback to old behavior in case of bad padding
+                         return new TextDecoder().decode(decryptedBuffer);
+                    }
+                    const unpaddedData = decryptedBytes.slice(0, decryptedBytes.length - padding);
+                    // --- END FIX ---
+
+                    return new TextDecoder().decode(unpaddedData); // Use unpadded data
+                } catch (e) {
+                    console.error("Decryption error:", e);
+                    return "";
+                }
+            }
+        }
+
+        /**
+         * Admin Class (JS)
+         * Manages elections, candidates, and voters.
+         */
+        class Admin {
+            constructor(username, password) {
+                this.username = username;
+                this.password_hash = null; // Will be set async
+                this.is_authenticated = false;
+                this.election_active = false;
+                this.candidates = [];
+                this.registered_voters = {}; // { voter_id: { name, password_hash, has_voted, vote_timestamp } }
+                this.start_time = null; // timestamp in seconds
+                this.end_time = null; // timestamp in seconds
+                this.blockchain = new VotingBlockchain();
+                this.encryption = new VoteEncryption();
+            }
+
+            /**
+             * Set password hash (must be called async).
+             */
+            async setPassword(password) {
+                this.password_hash = await sha256(password);
+            }
+
+            /**
+             * Authenticate admin login (async).
+             */
+            async authenticate(username, password) {
+                const password_hash = await sha256(password);
+                if (this.username === username && this.password_hash === password_hash) {
+                    this.is_authenticated = true;
+                    console.log("Admin authentication successful!");
+                    return true;
+                } else {
+                    console.error("Authentication failed!");
+                    return false;
+                }
+            }
+
+            /**
+             * Setup election with candidates and registered voters (async).
+             */
+            async setup_election(candidates, voters, duration_minutes = 5) {
+                if (!this.is_authenticated) {
+                    console.error("Admin must be authenticated to setup election");
+                    return false;
+                }
+
+                this.candidates = candidates;
+                this.registered_voters = {};
+
+                // Register voters with voting status tracking
+                for (const voter of voters) {
+                    const voter_id = voter['voter_id'];
+                    this.registered_voters[voter_id] = {
+                        'name': voter['name'],
+                        'password_hash': await sha256(voter['password']),
+                        'has_voted': false,
+                        'vote_timestamp': null
+                    };
+                }
+
+                // Set voting time window
+                this.start_time = (Date.now() / 1000); // Starts now
+                this.end_time = this.start_time + (duration_minutes * 60);
+                this.election_active = false; // Not active until "Start" is clicked
+
+                console.log("Election setup complete!");
+                return true;
+            }
+            
+            start_election() {
+                if (!this.is_authenticated) {
+                    console.error("Admin must be authenticated to start election");
+                    return false;
+                }
+                if (!this.candidates.length || !Object.keys(this.registered_voters).length) {
+                    console.error("Election must be setup before starting");
+                    return false;
+                }
+                
+                // Re-calculate start/end time when "Start" is clicked
+                // This honors the "countdown *to start*" request.
+                // Let's adjust setup_election.
+                //
+                // New logic:
+                // setup_election() only sets candidates, voters, and DURATION.
+                // start_election() sets start_time, end_time, and active = true.
+                
+                // Let's re-write setup_election and start_election
+                
+                // See new `setup_election_v2` and `start_election_v2`
+                
+                this.election_active = true;
+                console.log("Election started! Voters can now cast their votes.");
+                return true;
+            }
+            
+            /**
+             * New setup logic: Sets up *pending* election.
+             */
+            async setup_election_v2(candidates, voters, duration_minutes = 5, start_delay_minutes = 2) {
+                if (!this.is_authenticated) {
+                    showToast("Admin must be authenticated", "error");
+                    return false;
+                }
+                
+                this.candidates = candidates;
+                this.registered_voters = {};
+                showLoading("Registering voters (hashing passwords)...");
+
+                for (const voter of voters) {
+                    const voter_id = voter['voter_id'];
+                    this.registered_voters[voter_id] = {
+                        'name': voter['name'],
+                        'password_hash': await sha256(voter['password']),
+                        'has_voted': false,
+                        'vote_timestamp': null
+                    };
+                }
+
+                this.start_time = (Date.now() / 1000) + (start_delay_minutes * 60);
+                this.end_time = this.start_time + (duration_minutes * 60);
+                this.election_active = false; // Not active yet
+                
+                hideLoading();
+                showToast("Election setup complete! Waiting for start time.", "success");
+                return true;
+            }
+            
+            /**
+             * New start logic: Now just an automatic check.
+             * The `start_election` button is now just for *manual* start.
+             */
+            manual_start_election() {
+                if (!this.is_authenticated) {
+                    showToast("Admin must be authenticated", "error");
+                    return false;
+                }
+                if (!this.start_time) {
+                    showToast("Election not set up yet.", "error");
+                    return false;
+                }
+                
+                // Manually start it now
+                const duration = (this.end_time - this.start_time);
+                this.start_time = Date.now() / 1000;
+                this.end_time = this.start_time + duration;
+                this.election_active = true;
+                showToast("Election manually started!", "success");
+                return true;
+            }
+
+
+            stop_election() {
+                if (!this.is_authenticated) {
+                    console.error("Admin must be authenticated to stop election");
+                    return false;
+                }
+                this.election_active = false;
+                this.end_time = Date.now() / 1000; // End it now
+                console.log("Election stopped! Voting is now closed.");
+                showToast("Election manually stopped!", "success");
+                return true;
+            }
+
+            /**
+             * Check if current time is within voting window.
+             */
+            is_voting_time_valid() {
+                const current_time = Date.now() / 1000;
+                return (this.start_time && this.end_time) &&
+                       (current_time >= this.start_time) && 
+                       (current_time <= this.end_time);
+            }
+            
+            /**
+             * Auto-activates election if start time is reached.
+             */
+            check_and_activate_election() {
+                const now = Date.now() / 1000;
+                if (!this.election_active && this.start_time && now >= this.start_time && now < this.end_time) {
+                    this.election_active = true;
+                    showToast("Election is now active!", "success");
+                }
+                if (this.election_active && now >= this.end_time) {
+                    this.election_active = false;
+                    showToast("Election has ended.", "info");
+                }
+            }
+            
+
+            /**
+             * Decrypt all votes and compile results (async).
+             */
+            async compile_results() {
+                if (!this.is_authenticated) {
+                    console.error("Admin must be authenticated to compile results");
+                    return {};
+                }
+
+                const vote_counts = this.candidates.reduce((acc, c) => ({ ...acc, [c]: 0 }), {});
+                let total_votes = 0;
+                let processedBlocks = [];
+
+                showLoading(`Decrypting ${this.blockchain.chain.length - 1} blocks...`);
+
+                // Skip genesis block
+                for (let i = 1; i < this.blockchain.chain.length; i++) {
+                    const block = this.blockchain.chain[i];
+                    try {
+                        const decrypted_vote = await this.encryption.decrypt_vote(block.data);
+                        const vote_data = JSON.parse(decrypted_vote);
+                        const candidate = vote_data['candidate'];
+
+                        if (candidate in vote_counts) {
+                            vote_counts[candidate]++;
+                            total_votes++;
+                            processedBlocks.push(`Block ${i}: Vote for ${candidate} (Voter: ${vote_data['voter_id']})`);
+                        } else {
+                            processedBlocks.push(`Block ${i}: Invalid candidate ${candidate}`);
+                        }
+                    } catch (e) {
+                        processedBlocks.push(`Error processing block ${i}: ${e.message}`);
+                    }
+                }
+                
+                hideLoading();
+                console.log("Decryption complete.", processedBlocks);
+                return { vote_counts, total_votes, processedBlocks };
+            }
+
+            async save_blockchain(filename = "voting_blockchain") {
+                showLoading("Saving blockchain...");
+                const success = this.blockchain.save_to_file(filename);
+                hideLoading();
+                if (success) {
+                    showToast("Blockchain saved to LocalStorage", "success");
+                } else {
+                    showToast("Failed to save blockchain", "error");
+                }
+            }
+
+            async load_blockchain(filename = "voting_blockchain") {
+                showLoading("Loading blockchain from LocalStorage...");
+                const loaded = this.blockchain.load_from_file(filename);
+                
+                if (!loaded) {
+                    // No existing chain, initialize a new one
+                    await this.blockchain.initialize();
+                    this.blockchain.save_to_file(filename); // Save the new genesis block
+                    showToast("New blockchain created.", "info");
+                } else {
+                    // Loaded existing chain, let's validate it
+                    const isValid = await this.blockchain.is_chain_valid();
+                    if (isValid) {
+                        showToast("Existing blockchain loaded and verified!", "success");
+                    } else {
+                        showToast("LOADED BLOCKCHAIN IS INVALID!", "error", 10000);
+                    }
+                }
+                
+                // Also load election state? For now, we assume election state
+                // is reset on reload, but blockchain persists.
+                // A real app would save admin state too.
+                
+                hideLoading();
+            }
+        }
+
+        /**
+         * Voter Class (JS)
+         * Handles voter authentication and vote submission.
+         */
+        class Voter {
+            constructor(voter_id, password) {
+                this.voter_id = voter_id;
+                this.password = password;
+                this.is_authenticated = false; // Not really used here, but for consistency
+            }
+
+            /**
+             * Cast a vote for a candidate (async).
+             */
+            async cast_vote(admin, candidate) {
+                // Check if voter is registered
+                if (!(this.voter_id in admin.registered_voters)) {
+                    showToast(`Voter ${this.voter_id} is not registered!`, "error");
+                    return false;
+                }
+
+                // Authenticate voter
+                const voter_info = admin.registered_voters[this.voter_id];
+                const password_hash = await sha256(this.password);
+                if (voter_info['password_hash'] !== password_hash) {
+                    showToast("Invalid voter credentials!", "error");
+                    return false;
+                }
+
+                // Check if election is active
+                if (!admin.election_active) {
+                    showToast("Election is not currently active!", "error");
+                    return false;
+                }
+
+                // Check voting time window
+                if (!admin.is_voting_time_valid()) {
+                    showToast("Voting is not allowed at this time!", "error");
+                    return false;
+                }
+
+                // Check if voter has already voted (prevent double voting)
+                if (voter_info['has_voted']) {
+                    showToast(`Voter ${this.voter_id} has already cast their vote!`, "error");
+                    return false;
+                }
+
+                // Check if candidate is valid
+                if (!admin.candidates.includes(candidate)) {
+                    showToast(`Invalid candidate: ${candidate}`, "error");
+                    return false;
+                }
+
+                try {
+                    showLoading("Encrypting your vote...");
+                    const vote_timestamp = Date.now() / 1000;
+                    // Create vote data
+                    const vote_data = {
+                        'voter_id': this.voter_id,
+                        'candidate': candidate,
+                        'timestamp': vote_timestamp,
+                        'vote_hash': await sha256(`${this.voter_id}${candidate}${vote_timestamp}`)
+                    };
+                    
+                    const vote_json = JSON.stringify(vote_data);
+                    const encrypted_vote_result = await admin.encryption.encrypt_vote(vote_json);
+
+                    if (typeof encrypted_vote_result !== 'string') {
+                        // Check if it's our error object
+                        if (encrypted_vote_result.error) {
+                            showToast(`Encryption Failed: ${encrypted_vote_result.error}`, "error", 5000);
+                        } else {
+                            showToast("Failed to encrypt vote!", "error");
+                        }
+                        return false;
+                    }
+                    
+                    const encrypted_vote = encrypted_vote_result; // It's a string, we're good
+                    
+                    // Add vote to blockchain (this will show mining spinner)
+                    const success = await admin.blockchain.add_block(encrypted_vote);
+
+                    if (success) {
+                        // Mark voter as having voted
+                        admin.registered_voters[this.voter_id]['has_voted'] = true;
+                        admin.registered_voters[this.voter_id]['vote_timestamp'] = vote_timestamp;
+                        
+                        // Save the updated blockchain/voter state
+                        admin.save_blockchain(); 
+                        
+                        showToast(`Vote successfully cast for ${candidate}!`, "success");
+                        return true;
+                    } else {
+                        showToast("Failed to add vote to blockchain!", "error");
+                        return false;
+                    }
+
+                } catch (e) {
+                    console.error("Error casting vote:", e);
+                    showToast(`Error casting vote: ${e.message}`, "error");
+                    return false;
+                } finally {
+                    hideLoading();
+                }
+            }
+        }
+
+
+        // --- Application State & UI Logic ---
+
+        let admin; // The single source of truth for app state
+        let loggedInVoterId = null;
+        let loggedInVoterPassword = null;
+        let globalTimerInterval = null;
+
+        // DOM Element References
+        const dom = {
+            loadingOverlay: document.getElementById('loading-overlay'),
+            loadingText: document.getElementById('loading-text'),
+            toast: document.getElementById('toast'),
+            toastText: document.getElementById('toast-text'),
+            globalTimer: document.getElementById('global-timer'),
+            
+            viewLoginSelect: document.getElementById('view-login-select'),
+            viewAdminDashboard: document.getElementById('view-admin-dashboard'),
+            viewVoterDashboard: document.getElementById('view-voter-dashboard'),
+            
+            btnShowAdminLogin: document.getElementById('btn-show-admin-login'),
+            btnShowVoterLogin: document.getElementById('btn-show-voter-login'),
+            
+            modalAdminLogin: document.getElementById('modal-admin-login'),
+            formAdminLogin: document.getElementById('form-admin-login'),
+            adminUsername: document.getElementById('admin-username'),
+            adminPassword: document.getElementById('admin-password'),
+            btnCancelAdminLogin: document.getElementById('btn-cancel-admin-login'),
+            
+            modalVoterLogin: document.getElementById('modal-voter-login'),
+            formVoterLogin: document.getElementById('form-voter-login'),
+            voterId: document.getElementById('voter-id'),
+            voterPassword: document.getElementById('voter-password'),
+            btnCancelVoterLogin: document.getElementById('btn-cancel-voter-login'),
+            
+            adminTabs: document.querySelectorAll('.admin-tab'),
+            adminTabContents: document.querySelectorAll('.admin-tab-content'),
+            
+            formSetupElection: document.getElementById('form-setup-election'),
+            setupCandidates: document.getElementById('setup-candidates'),
+            setupVoters: document.getElementById('setup-voters'),
+            setupDuration: document.getElementById('setup-duration'),
+            btnSetupElection: document.getElementById('btn-setup-election'),
+            
+            btnStartElection: document.getElementById('btn-start-election'),
+            btnStopElection: document.getElementById('btn-stop-election'),
+            btnCompileResults: document.getElementById('btn-compile-results'),
+            resultsDisplay: document.getElementById('results-display'),
+            
+            btnVerifyChain: document.getElementById('btn-verify-chain'),
+            btnSaveChain: document.getElementById('btn-save-chain'),
+            btnLoadChain: document.getElementById('btn-load-chain'),
+            blockchainViewer: document.getElementById('blockchain-viewer'),
+            
+            voterWelcome: document.getElementById('voter-welcome'),
+            voterStatusVoted: document.getElementById('voter-status-voted'),
+            voterVotedTimestamp: document.getElementById('voter-voted-timestamp'),
+            voterStatusClosed: document.getElementById('voter-status-closed'),
+            formCastVote: document.getElementById('form-cast-vote'),
+            candidateList: document.getElementById('candidate-list'),
+            btnCastVote: document.getElementById('btn-cast-vote'),
+            
+            btnAdminLogout: document.getElementById('btn-admin-logout'),
+            btnVoterLogout: document.getElementById('btn-voter-logout'),
+        };
+
+        // UI Utility Functions
+        function showLoading(text = "Loading...") {
+            dom.loadingText.textContent = text;
+            dom.loadingOverlay.classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            dom.loadingOverlay.classList.add('hidden');
+        }
+
+        let toastTimer;
+        function showToast(text, type = "info", duration = 3000) {
+            clearTimeout(toastTimer);
+            dom.toastText.textContent = text;
+            dom.toast.classList.remove('hidden', 'bg-green-600', 'bg-red-600', 'bg-yellow-600', 'bg-blue-600');
+            
+            if (type === 'success') dom.toast.classList.add('bg-green-600');
+            else if (type === 'error') dom.toast.classList.add('bg-red-600');
+            else if (type === 'warn') dom.toast.classList.add('bg-yellow-600');
+            else dom.toast.classList.add('bg-blue-600');
+            
+            toastTimer = setTimeout(() => {
+                dom.toast.classList.add('hidden');
+            }, duration);
+        }
+        
+        function showView(viewId) {
+            dom.viewLoginSelect.classList.add('hidden');
+            dom.viewAdminDashboard.classList.add('hidden');
+            dom.viewVoterDashboard.classList.add('hidden');
+            document.getElementById(viewId).classList.remove('hidden');
+        }
+
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
+        }
+
+        function hideModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+        
+        function formatTime(seconds) {
+            if (seconds < 0) seconds = 0;
+            const days = Math.floor(seconds / (24 * 60 * 60));
+            seconds %= (24 * 60 * 60);
+            const hours = Math.floor(seconds / (60 * 60));
+            seconds %= (60 * 60);
+            const minutes = Math.floor(seconds / 60);
+            seconds = Math.floor(seconds % 60);
+            
+            let str = "";
+            if (days > 0) str += `${days}d `;
+            if (hours > 0) str += `${hours}h `;
+            if (minutes > 0) str += `${minutes}m `;
+            str += `${seconds}s`;
+            
+            return str.trim();
+        }
+
+        // --- Main App Logic ---
+        
+        /**
+         * Updates the global timer display.
+         */
+        function updateGlobalTimer() {
+            if (!admin) return;
+            
+            // Check and update election state
+            admin.check_and_activate_election();
+            
+            const now = Date.now() / 1000;
+            let timerText = "Election Not Yet Set Up";
+            
+            if (admin.start_time) {
+                if (now < admin.start_time) {
+                    // Before start
+                    timerText = `Election Starts In: ${formatTime(admin.start_time - now)}`;
+                } else if (now < admin.end_time) {
+                    // During election
+                    timerText = `Election Ends In: ${formatTime(admin.end_time - now)}`;
+                } else {
+                    // After end
+                    timerText = "Election Has Ended";
+                }
+            }
+            dom.globalTimer.textContent = timerText;
+        }
+
+        /**
+         * Refresh all UI elements in the Admin Dashboard.
+         */
+        function updateAdminDashboard() {
+            if (!admin.is_authenticated) return;
+            
+            const now = Date.now() / 1000;
+            
+            // Setup form
+            const canSetup = !admin.start_time || now > admin.end_time;
+            dom.formSetupElection.style.opacity = canSetup ? '1' : '0.5';
+            dom.btnSetupElection.disabled = !canSetup;
+            if (!canSetup) {
+                dom.setupCandidates.disabled = true;
+                dom.setupVoters.disabled = true;
+                dom.setupDuration.disabled = true;
+            } else {
+                dom.setupCandidates.disabled = false;
+                dom.setupVoters.disabled = false;
+                dom.setupDuration.disabled = false;
+            }
+            
+            // Manage buttons
+            const canStart = admin.start_time && now < admin.start_time && !admin.election_active;
+            const canStop = admin.election_active && now < admin.end_time;
+            dom.btnStartElection.disabled = !canStart;
+            dom.btnStopElection.disabled = !canStop;
+            
+            // Results button
+            const canCompile = admin.start_time && now > admin.end_time;
+            dom.btnCompileResults.disabled = !canCompile;
+            
+            // Refresh blockchain view
+            updateBlockchainView();
+        }
+
+        /**
+         * Refresh all UI elements in the Voter Dashboard.
+         */
+        function updateVoterDashboard() {
+            if (!loggedInVoterId || !admin) return;
+            
+            const voterInfo = admin.registered_voters[loggedInVoterId];
+            if (!voterInfo) {
+                showToast("Voter data not found!", "error");
+                logoutVoter();
+                return;
+            }
+            
+            dom.voterWelcome.textContent = `Welcome, ${voterInfo.name}!`;
+            
+            if (voterInfo.has_voted) {
+                // Already voted
+                dom.voterStatusVoted.classList.remove('hidden');
+                dom.voterStatusClosed.classList.add('hidden');
+                dom.formCastVote.classList.add('hidden');
+                const voteDate = new Date(voterInfo.vote_timestamp * 1000);
+                dom.voterVotedTimestamp.textContent = `You voted on ${voteDate.toLocaleString()}`;
+            } else if (admin.election_active && admin.is_voting_time_valid()) {
+                // Voting is open
+                dom.voterStatusVoted.classList.add('hidden');
+                dom.voterStatusClosed.classList.add('hidden');
+                dom.formCastVote.classList.remove('hidden');
+                
+                // Populate candidates
+                dom.candidateList.innerHTML = "";
+                admin.candidates.forEach((candidate, index) => {
+                    dom.candidateList.innerHTML += `
+                        <label for="candidate-${index}" class="flex items-center p-4 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors">
+                            <input type="radio" id="candidate-${index}" name="candidate" value="${candidate}" class="h-5 w-5 text-blue-500 bg-gray-900 border-gray-600 focus:ring-blue-500">
+                            <span class="ml-4 text-lg font-medium text-white">${candidate}</span>
+                        </label>
+                    `;
+                });
+            } else {
+                // Voting is closed
+                dom.voterStatusVoted.classList.add('hidden');
+                dom.voterStatusClosed.classList.remove('hidden');
+                dom.formCastVote.classList.add('hidden');
+            }
+        }
+        
+        /**
+         * Refreshes the blockchain block viewer.
+         */
+        function updateBlockchainView() {
+            dom.blockchainViewer.innerHTML = "";
+            [...admin.blockchain.chain].reverse().forEach(block => {
+                const blockEl = document.createElement('div');
+                blockEl.className = 'bg-gray-800 p-4 rounded-lg border border-gray-700 font-mono text-sm';
+                blockEl.innerHTML = `
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xl font-bold text-blue-400">Block #${block.index}</span>
+                        <span class="text-xs text-gray-400">${new Date(block.timestamp * 1000).toLocaleString()}</span>
+                    </div>
+                    <div class="space-y-1 text-xs break-all">
+                        <p><strong class="text-gray-400">Hash:</strong> <span class="text-green-400">${block.hash.substring(0, 40)}...</span></p>
+                        <p><strong class="text-gray-400">Prev Hash:</strong> <span class="text-yellow-400">${block.previous_hash.substring(0, 40)}...</span></p>
+                        <p><strong class="text-gray-400">Nonce:</strong> <span class="text-gray-300">${block.nonce}</span></p>
+                        <p><strong class="text-gray-400">Data:</strong> <span class="text-gray-300">${block.data.substring(0, 60)}...</span></p>
+                    </div>
+                `;
+                dom.blockchainViewer.appendChild(blockEl);
+            });
+        }
+        
+        function logoutAdmin() {
+            admin.is_authenticated = false;
+            showView('view-login-select');
+        }
+        
+        function logoutVoter() {
+            loggedInVoterId = null;
+            loggedInVoterPassword = null;
+            showView('view-login-select');
+        }
+        
+
+        // --- Event Listeners ---
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+            showLoading("Initializing System...");
+            
+            // 1. Initialize the Admin object with demo credentials
+            admin = new Admin("election_admin", "secure_password_123");
+            await admin.setPassword("secure_password_123");
+            
+            // 2. Load or create the blockchain
+            await admin.load_blockchain();
+            
+            // 3. Start the global timer
+            globalTimerInterval = setInterval(updateGlobalTimer, 1000);
+            updateGlobalTimer(); // Run once immediately
+            
+            hideLoading();
+            showView('view-login-select');
+        });
+
+        // Main Login Buttons
+        dom.btnShowAdminLogin.addEventListener('click', () => showModal('modal-admin-login'));
+        dom.btnShowVoterLogin.addEventListener('click', () => {
+            if (!admin.start_time) {
+                showToast("Admin has not set up an election yet.", "warn");
+                return;
+            }
+            if (!Object.keys(admin.registered_voters).length) {
+                showToast("No voters are registered for this election.", "warn");
+                return;
+            }
+            dom.voterId.value = '';
+            dom.voterPassword.value = '';
+            showModal('modal-voter-login');
+        });
+        
+        // Modal Cancel Buttons
+        dom.btnCancelAdminLogin.addEventListener('click', () => hideModal('modal-admin-login'));
+        dom.btnCancelVoterLogin.addEventListener('click', () => hideModal('modal-voter-login'));
+        
+        // Logout Buttons
+        dom.btnAdminLogout.addEventListener('click', logoutAdmin);
+        dom.btnVoterLogout.addEventListener('click', logoutVoter);
+
+        // Admin Login
+        dom.formAdminLogin.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showLoading("Authenticating admin...");
+            const username = dom.adminUsername.value;
+            const password = dom.adminPassword.value;
+            const authed = await admin.authenticate(username, password);
+            hideLoading();
+            if (authed) {
+                hideModal('modal-admin-login');
+                showView('view-admin-dashboard');
+                updateAdminDashboard();
+                showToast("Admin login successful!", "success");
+            } else {
+                showToast("Admin authentication failed!", "error");
+            }
+        });
+        
+        // Voter Login
+        dom.formVoterLogin.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const voter_id = dom.voterId.value;
+            const password = dom.voterPassword.value;
+            
+            if (!admin.registered_voters[voter_id]) {
+                showToast("This Voter ID is not registered.", "error");
+                return;
+            }
+            
+            showLoading("Authenticating voter...");
+            const passHash = await sha256(password);
+            
+            if (admin.registered_voters[voter_id].password_hash === passHash) {
+                loggedInVoterId = voter_id;
+                loggedInVoterPassword = password; // Store for casting vote
+                
+                hideModal('modal-voter-login');
+                showView('view-voter-dashboard');
+                updateVoterDashboard();
+                showToast("Voter login successful!", "success");
+            } else {
+                showToast("Invalid Voter ID or password.", "error");
+            }
+            hideLoading();
+        });
+        
+        // Admin Tabs
+        dom.adminTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Update tab styles
+                dom.adminTabs.forEach(t => {
+                    t.classList.remove('border-blue-500', 'text-blue-400');
+                    t.classList.add('border-transparent', 'text-gray-400', 'hover:text-gray-300', 'hover:border-gray-500');
+                });
+                tab.classList.add('border-blue-500', 'text-blue-400');
+                tab.classList.remove('border-transparent', 'text-gray-400');
+                
+                // Show content
+                const tabId = tab.dataset.tab;
+                dom.adminTabContents.forEach(content => {
+                    content.id === tabId ? content.classList.remove('hidden') : content.classList.add('hidden');
+                });
+            });
+        });
+        
+        // Admin: Setup Election
+        dom.formSetupElection.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const candidates = dom.setupCandidates.value.split('\n').filter(c => c.trim() !== '');
+            const votersRaw = dom.setupVoters.value.split('\n').filter(v => v.trim() !== '');
+            const duration = parseInt(dom.setupDuration.value, 10);
+            
+            if (candidates.length < 2) {
+                showToast("Must have at least 2 candidates.", "error");
+                return;
+            }
+            if (votersRaw.length < 1) {
+                showToast("Must have at least 1 voter.", "error");
+                return;
+            }
+            
+            const voters = votersRaw.map(v => {
+                const [voter_id, name, password] = v.split(',');
+                return { voter_id, name, password };
+            });
+            
+            if (voters.some(v => !v.voter_id || !v.name || !v.password)) {
+                showToast("Voter data is malformed. Use id,name,password", "error");
+                return;
+            }
+            
+            // For demo, let's use a 1-minute delay to show the countdown timer
+            const start_delay_minutes = 1; 
+            
+            // This is now an async operation
+            await admin.setup_election_v2(candidates, voters, duration, start_delay_minutes);
+            
+            // Reset form
+            dom.setupCandidates.value = '';
+            dom.setupVoters.value = '';
+            
+            updateAdminDashboard();
+        });
+        
+        // Admin: Manage Buttons
+        dom.btnStartElection.addEventListener('click', () => {
+            admin.manual_start_election();
+            updateAdminDashboard();
+        });
+        
+        dom.btnStopElection.addEventListener('click', () => {
+            admin.stop_election();
+            updateAdminDashboard();
+        });
+        
+        // Admin: Results
+        dom.btnCompileResults.addEventListener('click', async () => {
+            const { vote_counts, total_votes, processedBlocks } = await admin.compile_results();
+            
+            dom.resultsDisplay.innerHTML = ""; // Clear old results
+            
+            if (total_votes === 0) {
+                dom.resultsDisplay.innerHTML = '<p class="text-gray-400">No votes were cast.</p>';
+                return;
+            }
+            
+            const totalRegistered = Object.keys(admin.registered_voters).length;
+            const turnout = (total_votes / totalRegistered * 100).toFixed(1);
+            let winner = "";
+            let maxVotes = -1;
+            
+            let resultsHTML = `
+                <div class="bg-gray-700 p-4 rounded-lg">
+                    <h4 class="text-xl font-semibold mb-3">Vote Tally</h4>
+                    <ul class="space-y-2">
+            `;
+            
+            for (const candidate in vote_counts) {
+                const votes = vote_counts[candidate];
+                if (votes > maxVotes) {
+                    maxVotes = votes;
+                    winner = candidate;
+                }
+                const percentage = (votes / total_votes * 100).toFixed(1);
+                resultsHTML += `
+                    <li class="flex justify-between items-center">
+                        <span class="font-medium">${candidate}</span>
+                        <span class="text-gray-300">${votes} votes (${percentage}%)</span>
+                    </li>
+                `;
+            }
+            
+            resultsHTML += `
+                    </ul>
+                </div>
+                <div class="bg-gray-700 p-4 rounded-lg text-center">
+                    <p class="text-lg">Total Votes: <strong class="text-white">${total_votes}</strong></p>
+                    <p class="text-lg">Voter Turnout: <strong class="text-white">${turnout}%</strong> (${total_votes} of ${totalRegistered})</p>
+                    <p class="text-2xl font-bold mt-4">Winner: <span class="text-green-400">${winner}</span></p>
+                </div>
+                <div class="bg-gray-700 p-4 rounded-lg">
+                    <h4 class="text-xl font-semibold mb-3">Decryption Log</h4>
+                    <div class="font-mono text-xs text-gray-400 space-y-1 max-h-48 overflow-y-auto blockchain-viewer">
+                        ${processedBlocks.map(log => `<p>${log}</p>`).join('')}
+                    </div>
+                </div>
+            `;
+            
+            dom.resultsDisplay.innerHTML = resultsHTML;
+        });
+
+        // Admin: Blockchain Buttons
+        dom.btnVerifyChain.addEventListener('click', async () => {
+            showLoading("Verifying all block hashes...");
+            const isValid = await admin.blockchain.is_chain_valid();
+            hideLoading();
+            if (isValid) {
+                showToast("Blockchain integrity verified! Chain is valid.", "success");
+            } else {
+                showToast("BLOCKCHAIN INTEGRITY FAILED! Chain is invalid.", "error", 5000);
+            }
+        });
+        
+        dom.btnSaveChain.addEventListener('click', () => admin.save_blockchain());
+        dom.btnLoadChain.addEventListener('click', async () => {
+            await admin.load_blockchain();
+            updateAdminDashboard();
+        });
+        
+        // Voter: Cast Vote
+        dom.formCastVote.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const selectedCandidate = dom.formCastVote.querySelector('input[name="candidate"]:checked');
+            
+            if (!selectedCandidate) {
+                showToast("Please select a candidate.", "error");
+                return;
+            }
+            
+            const candidateName = selectedCandidate.value;
+            
+            // Use the stored credentials to create a new Voter action object
+            const voter = new Voter(loggedInVoterId, loggedInVoterPassword);
+            const success = await voter.cast_vote(admin, candidateName);
+            
+            if (success) {
+                // Refresh the voter view to show the "Already Voted" screen
+                updateVoterDashboard();
+            }
+        });
+
+    </script>
+</body>
+</html>
+
+
+
+
+
